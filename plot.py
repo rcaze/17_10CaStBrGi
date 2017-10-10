@@ -3,8 +3,20 @@ from matplotlib import gridspec
 from brian2 import ms
 import brian2 as br2
 import numpy as np
+from lib import load_gsize
 
-def pop(spikes, gridmax=170, save=None):
+
+def s(save=None, fig=None):
+    """Code snippet to use at the end of making a figure"""
+    if save:
+        plt.tight_layout()
+        plt.savefig(save, dpi=800)
+        plt.close(fig)
+    else:
+        plt.show()
+
+
+def pop(spikes, gridmax=220, save=None):
     """Draw and/or save the figure"""
     plt.figure()
     gs = gridspec.GridSpec(3, 1, height_ratios=[1, 1, 3])
@@ -32,11 +44,12 @@ def pop(spikes, gridmax=170, save=None):
     ax1.set_ylabel("Rate")
     ax1.set_xlim(110, 220)
     ax1.set_xlim(110, 220)
+    ax1.set_xticklabels("")
 
     # Draw the group size
     ax2 = plt.subplot(gs[0])
     selected = np.array(spikes.t[red_spikes]/ms)
-    selected[selected > 170] = 250
+    selected[selected > gridmax] = 250
     print(selected)
     ax2.hist(selected, range(250), color="red")
     #ax1.plot(mon_rat.t/ms, mon_rat.smooth_rate(width=1*ms)/Hz, color="black")
@@ -44,8 +57,53 @@ def pop(spikes, gridmax=170, save=None):
     ax2.set_ylabel("g'")
     ax2.set_xlim(110, 220)
     ax2.set_xlim(110, 220)
+    ax2.set_xticklabels("")
 
     if save:
         plt.savefig(save + ".png")
     else:
         plt.show()
+
+
+def markov(group_ev, max_size=180, save=None, linear=True):
+    """Plot the most probable evolution of a group size at time t+1 given the
+    size at time t"""
+    fig, ax = plt.subplots(dpi=200, figsize=(5, 5))
+    ax.plot(np.arange(1, max_size+1, 5), np.array(group_ev), marker='_',
+             ms=7,
+             mew=1,
+             color="black",
+             linestyle='', alpha=0.3)
+    ax.plot(np.arange(1, max_size+1, 5),
+             np.mean(np.array(group_ev), axis=1),
+             marker='s', color="lime", ms=3,
+             linestyle='')
+    ax.plot(np.arange(0, max_size), np.arange(0, max_size), color="black")
+    ax.tick_params(direction='in', pad=5)
+    ax.set_aspect('equal')
+    ax.set_xticks([1] + range(25, max_size+1, 25))
+    ax.set_yticks([1] + range(25, max_size+1, 25))
+    ax.set_xlim(0, max_size)
+    plt.ylim(0, max_size)
+    plt.xlabel("# of synchronized neurons g'0")
+    plt.ylabel("# of synchronized neurons g'1")
+
+    #Making an inset
+    plt.axes([0.17, 0.65, .2, .2])
+    if linear:
+        plt.plot(range(11), range(11), color='black')
+    else:
+        plt.plot(range(11), range(11), color='gray')
+        plt.plot(range(11), range(3) + [4, 6] + [6 for i in range(6)], color='black')
+    plt.xlim(0, 10)
+    plt.ylim(0, 10)
+    plt.xticks([])
+    plt.yticks([])
+
+    s(save, fig=fig)
+
+if __name__ == "__main__":
+    gsize = load_gsize()
+    gsize_nl = load_gsize(linear=False)
+    markov(gsize, linear=True, save="markov.png")
+    markov(gsize_nl, linear=False, save="markov_nl.png")
