@@ -3,7 +3,6 @@ from matplotlib import gridspec
 from brian2 import ms
 import brian2 as br2
 import numpy as np
-from lib import load_gsize
 
 
 def s(save=None, fig=None):
@@ -16,7 +15,7 @@ def s(save=None, fig=None):
         plt.show()
 
 
-def pop(spikes, gridmax=220, save=None):
+def pop(spikes, ymax1=250, gridmax=220, save=None):
     """Draw and/or save the figure"""
     plt.figure()
     gs = gridspec.GridSpec(3, 1, height_ratios=[1, 1, 3])
@@ -38,9 +37,12 @@ def pop(spikes, gridmax=220, save=None):
 
     # Draw the population rate
     ax1 = plt.subplot(gs[1])
-    ax1.hist(spikes.t/ms, range(250), color="black")
+    if save is not None:
+        ax1.hist(spikes.t/ms, range(250), color="black")
+    else:
+        h_glob, b, p = ax1.hist(spikes.t/ms, np.arange(0, 250, 0.1), color="black")
     #ax1.plot(mon_rat.t/ms, mon_rat.smooth_rate(width=1*ms)/Hz, color="black")
-    ax1.set_ylim(0, 250)
+    ax1.set_ylim(0, ymax1)
     ax1.set_ylabel("Rate")
     ax1.set_xlim(110, 220)
     ax1.set_xlim(110, 220)
@@ -50,8 +52,13 @@ def pop(spikes, gridmax=220, save=None):
     ax2 = plt.subplot(gs[0])
     selected = np.array(spikes.t[red_spikes]/ms)
     selected[selected > gridmax] = 250
-    print(selected)
-    ax2.hist(selected, range(250), color="red")
+
+    if save is not None:
+        ax2.hist(selected, range(250), color="red")
+    else:
+        h_g, b, p = ax2.hist(selected, np.arange(0, 250, 0.1), color="red")
+        # Extract only the
+        h_g = h_g[range(1500, 2000, 50)]
     #ax1.plot(mon_rat.t/ms, mon_rat.smooth_rate(width=1*ms)/Hz, color="black")
     ax2.set_ylim(0, 250)
     ax2.set_ylabel("g'")
@@ -61,8 +68,13 @@ def pop(spikes, gridmax=220, save=None):
 
     if save:
         plt.savefig(save + ".png")
+    elif save is None:
+        #Save the data to see what is the color of the pixel
+        plt.close('all')
+        return h_glob, h_g
     else:
         plt.show()
+
 
 
 def markov(group_ev, max_size=180, save=None, linear=True):
@@ -103,6 +115,7 @@ def markov(group_ev, max_size=180, save=None, linear=True):
     s(save, fig=fig)
 
 if __name__ == "__main__":
+    from lib import load_gsize
     gsize = load_gsize()
     gsize_nl = load_gsize(linear=False)
     markov(gsize, linear=True, save="markov.png")

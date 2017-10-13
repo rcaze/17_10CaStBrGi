@@ -2,13 +2,14 @@ import numpy as np
 import h5py
 import brian2 as br2
 from brian2 import mV, ms
-
+from itertools import product
+from plot import pop
 
 def set_neuron():
     """Set the neuron model"""
     pass
 
-def save_gsize(gsize, fname="data.hdf", linear=True):
+def save_gsize(gsize, fname="dat.hdf", linear=True):
     """Save the Brian object into an h5 file"""
     with h5py.File(fname, "a") as hdf:
         if linear:
@@ -17,7 +18,17 @@ def save_gsize(gsize, fname="data.hdf", linear=True):
             hdf.create_dataset(name="nonlinear", data=gsize)
     pass
 
-def load_gsize(fname="data.hdf", linear=True):
+def save_grid(hists, exc_w, inh_w, fname="grid.hdf", linear=True):
+    """Save the Brian object into an h5 file"""
+    with h5py.File(fname, "a") as hdf:
+        if linear:
+            hdf.create_dataset(name="e_%s_i_%s_l" % (exc_w, inh_w), data=hists)
+        else:
+            hdf.create_dataset(name="e_%s_i_%s_nl" % (exc_w, inh_w), data=hists)
+    pass
+
+
+def load_gsize(fname="dat.hdf", linear=True):
     """Save the Brian object into an h5 file"""
     with h5py.File(fname, "r") as hdf:
         if linear:
@@ -36,8 +47,20 @@ def group_size_ev(group_size, repet_n=1, linear=True):
         group_ev.append(g_size)
     return group_ev
 
+def grid_search(weights=np.arange(0.16, 0.4, 0.375/150.),
+                n_rep=1,
+                linear=True):
+    """Perform a parameter sweep and record the result in an hdf5 file"""
+    for ext, inh in product(weights, weights):
+        hists = []
+        for i in range(n_rep):
+            c_hist = pop(run(exc_w=ext, inh_w=inh, linear=linear))
+            c_hist = np.max(c_hist[0][1000:]) + c_hist[1]
+            hists.append(c_hist)
+        save_grid(np.array(hists), ext, inh, linear=linear)
 
-def run(TSTOP=250, group_size=100, g_time=150, neuron_n=1000, linear=True):
+def run(TSTOP=250, group_size=100, g_time=150, neuron_n=1000, linear=True
+        ,ext_w=0.2 ,inh_w=0.2):
     """Run a simulation and return the resulting spiketrain"""
     # Basic equation of the model
     eq = """dv/dt = -gamma*v + I0 : volt
@@ -82,8 +105,8 @@ def run(TSTOP=250, group_size=100, g_time=150, neuron_n=1000, linear=True):
                         ''', when='after_synapses')
 
     dt = br2.defaultclock.dt
-    exc_syn = br2.Synapses(G, G, on_pre='Ie += 0.2*mV', delay=5*ms-dt)
-    inh_syn = br2.Synapses(G, G, on_pre='Ii -= 0.2*mV', delay=5*ms-dt)
+    exc_syn = br2.Synapses(G, G, on_pre='Ie += %s*mV' % (ext_w), delay=5*ms-dt)
+    inh_syn = br2.Synapses(G, G, on_pre='Ii -= %s*mV' % (inh_w), delay=5*ms-dt)
     exc_syn.connect(i=exc_i, j=exc_j)
     inh_syn.connect(i=inh_i, j=inh_j)
 
@@ -93,3 +116,6 @@ def run(TSTOP=250, group_size=100, g_time=150, neuron_n=1000, linear=True):
     br2.run(TSTOP * ms)
 
     return spikes
+
+if __name__ == "__main__":
+    grid_search(np.arange(0.16, 0.4, 0.1))
