@@ -1,4 +1,5 @@
 import numpy as np
+import os
 import h5py
 import brian2 as br2
 from brian2 import mV, ms
@@ -54,8 +55,9 @@ def grid_search(weights=np.arange(0.16, 0.4, 0.375/150.),
     for ext, inh in product(weights, weights):
         hists = []
         for i in range(n_rep):
-            c_hist = pop(run(exc_w=ext, inh_w=inh, linear=linear))
-            c_hist = np.max(c_hist[0][1000:]) + c_hist[1]
+            spikes = run(ext_w=ext, inh_w=inh, linear=linear)
+            hist_glob, hist_g = pop(spikes)
+            c_hist = [np.max(hist_glob[:1000])] + hist_g.tolist()
             hists.append(c_hist)
         save_grid(np.array(hists), ext, inh, linear=linear)
 
@@ -117,5 +119,30 @@ def run(TSTOP=250, group_size=100, g_time=150, neuron_n=1000, linear=True
 
     return spikes
 
+def coloring(ext_w, inh_w, linear, fname="grid.hdf"):
+    """Color the points given from the data"""
+    if linear:
+        data_name = "e_%s_i_%s_l" % (ext_w, inh_w)
+    else:
+        data_name = "e_%s_i_%s_nl" % (ext_w, inh_w)
+
+    with h5py.File(fname, "r") as hdf:
+        data = np.array(hdf[data_name][0])
+        if data[0] >= 100:
+            if np.min(data[1:]) > data[0]:
+                return (1, 1, 0)
+            else:
+                return (1, 0, 0)
+        else:
+            if np.min(data[1:]) > data[0]:
+                return (0, 0, 1)
+            else:
+                return (0, 1, 0)
+
+
 if __name__ == "__main__":
-    grid_search(np.arange(0.16, 0.4, 0.1))
+    #os.remove("grid.hdf")
+    # This range requires ~10 min computation time on a laptop
+    par_range = np.linspace(0.16, 0.4, 5, endpoint=True)
+    grid_search(par_range)
+    grid_search(par_range, linear=False)

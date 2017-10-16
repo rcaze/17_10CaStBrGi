@@ -40,7 +40,7 @@ def pop(spikes, ymax1=250, gridmax=220, save=None):
     if save is not None:
         ax1.hist(spikes.t/ms, range(250), color="black")
     else:
-        h_glob, b, p = ax1.hist(spikes.t/ms, np.arange(0, 250, 0.1), color="black")
+        h_glob, b, p = ax1.hist(spikes.t/ms, np.arange(0.05, 250, 0.1), color="black")
     #ax1.plot(mon_rat.t/ms, mon_rat.smooth_rate(width=1*ms)/Hz, color="black")
     ax1.set_ylim(0, ymax1)
     ax1.set_ylabel("Rate")
@@ -56,9 +56,9 @@ def pop(spikes, ymax1=250, gridmax=220, save=None):
     if save is not None:
         ax2.hist(selected, range(250), color="red")
     else:
-        h_g, b, p = ax2.hist(selected, np.arange(0, 250, 0.1), color="red")
+        h_g, b, p = ax2.hist(selected, np.arange(0.05, 250, 0.1), color="red")
         # Extract only the
-        h_g = h_g[range(1500, 2000, 50)]
+        h_g = h_g[range(1499, 1999, 50)]
     #ax1.plot(mon_rat.t/ms, mon_rat.smooth_rate(width=1*ms)/Hz, color="black")
     ax2.set_ylim(0, 250)
     ax2.set_ylabel("g'")
@@ -114,9 +114,22 @@ def markov(group_ev, max_size=180, save=None, linear=True):
 
     s(save, fig=fig)
 
+def grid(par_range, colors, save=None):
+    """Draw the result of a parameter search"""
+    fig, ax = plt.subplots(dpi=200, figsize=(5, 5))
+    ax.imshow(colors, extent=[min(par_range),max(par_range),max(par_range),min(par_range)])
+    ax.set_xlabel("Total ext weight")
+    ax.set_ylabel("Total Inh weight")
+    s(save, fig=fig)
+
+
 if __name__ == "__main__":
+    """
     from lib import load_gsize
     gsize = load_gsize()
     gsize_nl = load_gsize(linear=False)
     markov(gsize, linear=True, save="markov.png")
     markov(gsize_nl, linear=False, save="markov_nl.png")
+    """
+    par_range = np.linspace(0, 5 , 2)
+    im = grid(par_range, np.zeros((2, 2)))
