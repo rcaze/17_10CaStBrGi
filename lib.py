@@ -1,14 +1,15 @@
 import numpy as np
-import os
 import h5py
 import brian2 as br2
 from brian2 import mV, ms
 from itertools import product
 from plot import pop
 
+
 def set_neuron():
     """Set the neuron model"""
     pass
+
 
 def save_gsize(gsize, fname="dat.hdf", linear=True):
     """Save the Brian object into an h5 file"""
@@ -18,6 +19,7 @@ def save_gsize(gsize, fname="dat.hdf", linear=True):
         else:
             hdf.create_dataset(name="nonlinear", data=gsize)
     pass
+
 
 def save_grid(hists, exc_w, inh_w, fname="grid.hdf", linear=True):
     """Save the Brian object into an h5 file"""
@@ -36,7 +38,7 @@ def load_gsize(fname="dat.hdf", linear=True):
             return np.array(hdf["linear"])
         else:
             return np.array(hdf["nonlinear"])
-    pass
+
 
 def group_size_ev(group_size, repet_n=1, linear=True):
     """Return the evolution of the group size"""
@@ -47,6 +49,7 @@ def group_size_ev(group_size, repet_n=1, linear=True):
         g_size = np.sum(np.abs(spikes.t/ms - 55) < dt)
         group_ev.append(g_size)
     return group_ev
+
 
 def grid_search(weights=np.arange(0.16, 0.4, 0.375/150.),
                 n_rep=1,
@@ -61,8 +64,9 @@ def grid_search(weights=np.arange(0.16, 0.4, 0.375/150.),
             hists.append(c_hist)
         save_grid(np.array(hists), ext, inh, linear=linear)
 
-def run(TSTOP=250, group_size=100, g_time=150, neuron_n=1000, linear=True
-        ,ext_w=0.2 ,inh_w=0.2):
+
+def run(TSTOP=250, group_size=100, g_time=150, neuron_n=1000, linear=True,
+        ext_w=0.2, inh_w=0.2):
     """Run a simulation and return the resulting spiketrain"""
     # Basic equation of the model
     eq = """dv/dt = -gamma*v + I0 : volt
@@ -141,8 +145,8 @@ def coloring(ext_w, inh_w, linear, fname="grid.hdf"):
 
 
 if __name__ == "__main__":
-    #os.remove("grid.hdf")
+    os.remove("grid.hdf")
     # This range requires ~10 min computation time on a laptop
-    par_range = np.linspace(0.16, 0.4, 5, endpoint=True)
+    par_range = np.linspace(0.16, 0.4, 100, endpoint=True)
     grid_search(par_range)
     grid_search(par_range, linear=False)
